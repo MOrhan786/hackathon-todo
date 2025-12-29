@@ -16,14 +16,6 @@ A command-line and web-based Todo application that stores tasks only in memory u
 - Python 3.13+
 - UV package manager (for running the application)
 
-## Setup
-
-1. Clone the repository
-2. Install dependencies (if any are added in future phases):
-   ```bash
-   uv sync
-   ```
-
 ## Usage
 
 ### Method 1: Using UV (full command)
