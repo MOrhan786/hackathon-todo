@@ -1,0 +1,62 @@
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.egg-info/
+.Python
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+
+# Database
+*.db
+*.sqlite
+*.sqlitedb
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Secrets
+*.pem
+*.key
+*.secret
+config/secrets.yml
+
+# System folders
+System Volume Information/
+$RECYCLE.BIN/
