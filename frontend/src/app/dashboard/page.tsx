@@ -6,7 +6,6 @@ import { authService } from '@/services/auth-service';
 
 export default function DashboardPage() {
   const router = useRouter();
-
   useEffect(() => {
     // Check authentication status on the client side
     if (typeof window !== 'undefined') {
