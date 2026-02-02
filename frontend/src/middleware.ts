@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith(path)
   );
 
-  // Check if the user has a token in localStorage by looking for Authorization header in API calls
+  // Check if the user has a token by looking for Authorization header or by attempting to validate the token
   // This works when the client sends requests with the Bearer token
   const hasAuthHeader = request.headers.get('authorization')?.startsWith('Bearer ');
 
@@ -34,10 +34,17 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // For client-protected paths, allow them to proceed and let client-side handle auth
+  // For client-protected paths, we need to handle authentication differently
+  // Since these pages will do client-side auth checks, we can allow them to proceed
+  // But for the root path specifically, we can add an extra check to improve UX
   if (isClientProtectedPath) {
+    // For initial visits to protected pages, we can check for the existence of a token in cookies or headers
+    // However, since the frontend stores tokens in localStorage, we can't check that server-side
+    // So we'll let the client-side handle it, but we can add a small optimization
     return NextResponse.next();
   }
+
+  return NextResponse.next();
 
   return NextResponse.next();
 }

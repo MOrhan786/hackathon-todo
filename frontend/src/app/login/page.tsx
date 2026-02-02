@@ -15,11 +15,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Check if user is already authenticated and redirect to dashboard if so
+  // Check if user is already authenticated and redirect to main app if so
   useEffect(() => {
     if (typeof window !== 'undefined') {
       if (authService.isAuthenticated()) {
-        router.push('/dashboard'); // Redirect to dashboard
+        router.push('/'); // Redirect to main todo app
       }
     }
   }, [router]);

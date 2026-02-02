@@ -20,6 +20,15 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // Check if user is already authenticated and redirect to main app if so
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (authService.isAuthenticated()) {
+        router.push('/'); // Redirect to main todo app if already authenticated
+      }
+    }
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -32,7 +41,7 @@ export default function SignupPage() {
       const token = localStorage.getItem('access_token');
 
       if (token) {
-        // Token is confirmed to be stored, redirect to dashboard
+        // Token is confirmed to be stored, redirect to dashboard (which will redirect to main todo app)
         router.replace('/dashboard');
       } else {
         setError('Registration failed: authentication token not received');

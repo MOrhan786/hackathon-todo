@@ -1,29 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/services/auth-service';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     // Check authentication status on the client side
     if (typeof window !== 'undefined') {
-      // Small delay to ensure token is properly stored after redirect
-      const timer = setTimeout(() => {
-        const authenticated = authService.isAuthenticated();
+      const authenticated = authService.isAuthenticated();
 
-        if (!authenticated) {
-          router.replace('/login'); // Redirect to login if not authenticated
-        } else {
-          // If authenticated, redirect to the main todo app page
-          router.replace('/');
-        }
-      }, 100); // Small delay to ensure token is available
-
-      return () => clearTimeout(timer);
+      if (!authenticated) {
+        router.replace('/login'); // Redirect to login if not authenticated
+      } else {
+        // If authenticated, redirect to the main todo app page
+        router.replace('/');
+      }
     }
   }, [router]);
 

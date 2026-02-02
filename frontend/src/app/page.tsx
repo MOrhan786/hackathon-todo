@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { TaskProvider, useTasks } from '@/services/task-service';
 import { authService } from '@/services/auth-service';
 import TaskList from '@/components/task/task-list';
@@ -94,6 +95,7 @@ const DashboardContent = () => {
 
 // Main page component
 export default function HomePage() {
+  const router = useRouter();
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -101,22 +103,25 @@ export default function HomePage() {
     { name: 'Dashboard', href: '/', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg> },
     { name: 'Tasks', href: '/tasks', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002 2h2a2 2 0 002-2" /></svg> },
     { name: 'Calendar', href: '/calendar', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> },
-    { name: 'Profile', href: '/profile', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> },
+    { name: 'Profile', href: '/profile', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 00-8 0 4 4 0 008 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> },
   ];
 
   // Check authentication on the client side
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Immediate check without delay to ensure proper redirect
       const authenticated = authService.isAuthenticated();
       setIsAuthenticated(authenticated);
-      setCheckingAuth(false);
 
-      // If not authenticated, redirect to login
       if (!authenticated) {
-        window.location.href = '/login';
+        // Redirect to login if not authenticated using Next.js router
+        router.replace('/login');
+      } else {
+        // Only set checkingAuth to false if authenticated
+        setCheckingAuth(false);
       }
     }
-  }, []);
+  }, [router]);
 
   // Show loading state while checking authentication
   if (checkingAuth) {
@@ -125,6 +130,11 @@ export default function HomePage() {
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
       </div>
     );
+  }
+
+  // Only render the dashboard if authenticated (double-check)
+  if (!isAuthenticated) {
+    return null; // Should not reach here due to redirect, but just in case
   }
 
   return (
