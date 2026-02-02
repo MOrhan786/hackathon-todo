@@ -1,0 +1,56 @@
+skills:
+  - name: spec-reader
+    purpose: Read and parse all spec-kit plus files
+    used_by:
+      - orchestrator
+      - spec-manager
+      - constitution-keeper
+
+  - name: spec-writer
+    purpose: Create detailed specs with UI/UX requirements
+    used_by:
+      - spec-manager
+
+  - name: spec-validator
+    purpose: Validate spec completeness and quality
+    used_by:
+      - constitution-keeper
+      - orchestrator
+
+  - name: design-system-generator
+    purpose: Generate color schemes, typography, spacing, components
+    used_by:
+      - spec-manager
+      - full-stack-frontend
+
+  - name: responsive-layout-designer
+    purpose: Design mobile-first responsive layouts
+    used_by:
+      - spec-manager
+      - full-stack-frontend
+
+  - name: sqlmodel-schema-generator
+    purpose: Create optimized SQLModel models with indexes
+    used_by:
+      - full-stack-backend
+
+  - name: jwt-middleware-generator
+    purpose: Generate JWT verification middleware
+    used_by:
+      - full-stack-backend
+
+  - name: fastapi-endpoint-generator
+    purpose: Generate production-ready API endpoints
+    used_by:
+      - full-stack-backend
+
+  - name: nextjs-page-generator
+    purpose: Generate beautiful Next.js pages and components
+    used_by:
+      - full-stack-frontend
+
+  - name: responsive-tester
+    purpose: Test responsive design across all breakpoints
+    used_by:
+      - constitution-keeper
+      - orchestrator
