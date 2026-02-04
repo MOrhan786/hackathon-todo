@@ -15,11 +15,18 @@ const getAuthHeaders = () => {
 
 // Helper function to normalize task data from backend to frontend format
 const normalizeTaskData = (taskData: any): Task => {
+  // Convert backend 'status' field to frontend 'completed' boolean
+  // Backend uses: status = 'pending' | 'completed'
+  // Frontend uses: completed = boolean
+  const isCompleted = taskData.completed !== undefined
+    ? taskData.completed
+    : taskData.status === 'completed';
+
   return {
     id: taskData.id,
     title: taskData.title,
     description: taskData.description,
-    completed: taskData.completed,
+    completed: isCompleted,
     createdAt: taskData.created_at || taskData.createdAt || new Date().toISOString(), // Handle both snake_case and camelCase
     updatedAt: taskData.updated_at || taskData.updatedAt || new Date().toISOString(), // Handle both snake_case and camelCase
     dueDate: taskData.due_date || taskData.dueDate,
@@ -28,6 +35,25 @@ const normalizeTaskData = (taskData: any): Task => {
     tags: Array.isArray(taskData.tags) ? taskData.tags : [],
     userId: taskData.user_id || taskData.userId
   };
+};
+
+// Helper function to convert frontend data to backend format
+const toBackendFormat = (taskData: any): any => {
+  const backendData: any = { ...taskData };
+
+  // Convert 'completed' boolean to 'status' string for backend
+  if (taskData.completed !== undefined) {
+    backendData.status = taskData.completed ? 'completed' : 'pending';
+    delete backendData.completed;
+  }
+
+  // Convert camelCase to snake_case for dates
+  if (taskData.dueDate !== undefined) {
+    backendData.due_date = taskData.dueDate;
+    delete backendData.dueDate;
+  }
+
+  return backendData;
 };
 
 // Real API service for tasks
@@ -83,10 +109,11 @@ const realTaskApiService = {
   // Create a new task
   async createTask(taskData: CreateTaskData): Promise<Task> {
     try {
+      const backendData = toBackendFormat(taskData);
       const response = await fetch(`${API_BASE_URL}/api/tasks`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(taskData),
+        body: JSON.stringify(backendData),
       });
 
       if (!response.ok) {
@@ -105,10 +132,11 @@ const realTaskApiService = {
   // Update a task
   async updateTask(id: string, taskData: UpdateTaskData): Promise<Task | null> {
     try {
+      const backendData = toBackendFormat(taskData);
       const response = await fetch(`${API_BASE_URL}/api/tasks/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify(taskData),
+        body: JSON.stringify(backendData),
       });
 
       if (!response.ok) {
@@ -157,10 +185,12 @@ const realTaskApiService = {
       const task = await this.getTaskById(id);
       if (!task) return null;
 
+      // Convert to backend format: status = 'pending' | 'completed'
+      const newStatus = task.completed ? 'pending' : 'completed';
       const response = await fetch(`${API_BASE_URL}/api/tasks/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ completed: !task.completed }),
+        body: JSON.stringify({ status: newStatus }),
       });
 
       if (!response.ok) {
