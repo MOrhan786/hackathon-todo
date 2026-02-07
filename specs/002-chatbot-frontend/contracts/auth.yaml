@@ -1,0 +1,286 @@
+openapi: 3.0.3
+info:
+  title: Authentication API
+  description: JWT-based authentication endpoints for Todo Chatbot frontend
+  version: 1.0.0
+  contact:
+    name: Backend API
+    url: http://localhost:8000
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.production.example.com
+    description: Production server
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      description: Create a new user account and return JWT tokens
+      operationId: registerUser
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              email: user@example.com
+              password: securePassword123!
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+              example:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                email: user@example.com
+                created_at: "2026-02-06T10:30:00Z"
+                updated_at: "2026-02-06T10:30:00Z"
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                token_type: "bearer"
+        '409':
+          description: User already exists (duplicate email)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "User with email user@example.com already exists"
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /auth/login:
+    post:
+      summary: Login user
+      description: Authenticate user and return JWT tokens
+      operationId: loginUser
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: user@example.com
+              password: securePassword123!
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                token_type: "bearer"
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Incorrect email or password"
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Get a new access token using a valid refresh token
+      operationId: refreshToken
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+            example:
+              refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                token_type: "bearer"
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Could not validate refresh token"
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      description: Invalidate user session (client-side token clearing)
+      operationId: logoutUser
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully logged out"
+
+components:
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          minLength: 5
+          maxLength: 255
+        password:
+          type: string
+          format: password
+          description: User's password (min 8 characters)
+          minLength: 8
+          maxLength: 128
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          format: password
+          description: User's password
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          description: Valid refresh token
+
+    RegisterResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User's unique identifier
+        email:
+          type: string
+          format: email
+          description: User's email address
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+        access_token:
+          type: string
+          description: JWT access token (expires in 1 hour)
+        refresh_token:
+          type: string
+          description: JWT refresh token (expires in 7 days)
+        token_type:
+          type: string
+          enum: [bearer]
+          description: Token type (always "bearer")
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token (expires in 1 hour)
+        refresh_token:
+          type: string
+          description: JWT refresh token (expires in 7 days)
+        token_type:
+          type: string
+          enum: [bearer]
+          description: Token type (always "bearer")
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: New JWT access token (expires in 1 hour)
+        token_type:
+          type: string
+          enum: [bearer]
+          description: Token type (always "bearer")
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+
+    ValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - type: integer
+              msg:
+                type: string
+              type:
+                type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/login or /auth/register
+
+security:
+  - bearerAuth: []

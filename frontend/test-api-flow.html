@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Flow Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #0070f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0051cc;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f8f8;
+            border-left: 4px solid #0070f3;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error {
+            border-left-color: #ff0000;
+            color: #ff0000;
+        }
+        .success {
+            border-left-color: #00cc00;
+            color: #00cc00;
+        }
+    </style>
+</head>
+<body>
+    <h1>Todo API Flow Test</h1>
+
+    <div class="test-section">
+        <h2>1. Register/Login</h2>
+        <button onclick="testRegister()">Register New User</button>
+        <button onclick="testLogin()">Login</button>
+        <div id="auth-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Fetch Tasks</h2>
+        <button onclick="testFetchTasks()">Get All Tasks</button>
+        <div id="tasks-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Create Task</h2>
+        <button onclick="testCreateTask()">Create Test Task</button>
+        <div id="create-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Auth Context Test</h2>
+        <button onclick="testTokenDecode()">Decode Stored Token</button>
+        <div id="token-result" class="result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        let accessToken = localStorage.getItem('access_token');
+
+        function displayResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.className = 'result ' + (isError ? 'error' : 'success');
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function testRegister() {
+            try {
+                const randomEmail = `test${Date.now()}@example.com`;
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: randomEmail,
+                        password: 'testpass123'
+                    })
+                });
+                const data = await response.json();
+                if (data.access_token) {
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+                    accessToken = data.access_token;
+                }
+                displayResult('auth-result', data);
+            } catch (error) {
+                displayResult('auth-result', { error: error.message }, true);
+            }
+        }
+
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'testpass123'
+                    })
+                });
+                const data = await response.json();
+                if (data.access_token) {
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+                    accessToken = data.access_token;
+                }
+                displayResult('auth-result', data);
+            } catch (error) {
+                displayResult('auth-result', { error: error.message }, true);
+            }
+        }
+
+        async function testFetchTasks() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    throw new Error('No access token found. Please login first.');
+                }
+                const response = await fetch(`${API_URL}/api/tasks`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                displayResult('tasks-result', data);
+            } catch (error) {
+                displayResult('tasks-result', { error: error.message }, true);
+            }
+        }
+
+        async function testCreateTask() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    throw new Error('No access token found. Please login first.');
+                }
+                const response = await fetch(`${API_URL}/api/tasks`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: 'Test Task from HTML',
+                        description: 'Testing task creation',
+                        status: 'pending',
+                        priority: 'medium'
+                    })
+                });
+                const data = await response.json();
+                displayResult('create-result', data);
+            } catch (error) {
+                displayResult('create-result', { error: error.message }, true);
+            }
+        }
+
+        function testTokenDecode() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    throw new Error('No access token found in localStorage');
+                }
+
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const isExpired = payload.exp && payload.exp < Date.now() / 1000;
+
+                displayResult('token-result', {
+                    token_exists: true,
+                    payload: payload,
+                    is_expired: isExpired,
+                    expires_at: new Date(payload.exp * 1000).toISOString(),
+                    user_id: payload.sub,
+                    email: payload.email || 'Not in token'
+                });
+            } catch (error) {
+                displayResult('token-result', { error: error.message }, true);
+            }
+        }
+
+        // Auto-check token on load
+        window.onload = () => {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                document.getElementById('token-result').textContent = 'Token found in localStorage';
+            } else {
+                document.getElementById('token-result').textContent = 'No token found. Please register or login first.';
+            }
+        };
+    </script>
+</body>
+</html>

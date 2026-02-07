@@ -1,0 +1,267 @@
+openapi: 3.0.3
+info:
+  title: Chatbot API
+  description: Chatbot integration endpoint for AI-Powered Todo management
+  version: 1.0.0
+
+paths:
+  /api/chat/message:
+    post:
+      summary: Process chatbot message
+      description: |
+        Process a natural language message from the user and perform the
+        appropriate task operation. The chatbot interprets the user's intent
+        and routes to the corresponding task operation.
+
+        Supported intents:
+        - create_task: Create a new task
+        - list_tasks: View tasks (with optional filters)
+        - update_task: Update task details
+        - complete_task: Mark a task as complete
+        - delete_task: Delete a task
+        - set_reminder: Set a reminder for a task
+        - help: Get help with available commands
+      operationId: processChatMessage
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Message processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/chat/sessions:
+    get:
+      summary: Get chat history
+      description: Retrieve chat history for the authenticated user
+      operationId: getChatHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Number of messages to return
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Chat history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatHistoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Natural language message from user
+          example: "Add buy groceries to my list for tomorrow"
+        session_id:
+          type: string
+          format: uuid
+          description: Optional session ID for conversation context
+          nullable: true
+
+    ChatResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          description: Chatbot's response message
+          example: "Created task: 'Buy groceries' due tomorrow"
+        session_id:
+          type: string
+          format: uuid
+          description: Session ID for conversation tracking
+        intent:
+          type: string
+          description: Detected intent from user message
+          enum:
+            - create_task
+            - list_tasks
+            - get_task
+            - update_task
+            - complete_task
+            - delete_task
+            - set_reminder
+            - help
+            - clarification_needed
+            - unknown
+          example: create_task
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Confidence score for intent detection
+          example: 0.95
+        entities:
+          type: object
+          description: Extracted entities from the message
+          properties:
+            task_title:
+              type: string
+            task_id:
+              type: string
+              format: uuid
+            due_date:
+              type: string
+              format: date-time
+            priority:
+              type: string
+              enum: [low, medium, high, urgent]
+            status:
+              type: string
+              enum: [pending, in_progress, completed]
+            reminder_time:
+              type: string
+              format: date-time
+          example:
+            task_title: "Buy groceries"
+            due_date: "2025-02-06T23:59:59Z"
+        action_result:
+          type: object
+          description: Result of the executed action (if any)
+          properties:
+            success:
+              type: boolean
+            task:
+              $ref: '#/components/schemas/TaskSummary'
+            tasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaskSummary'
+            reminder:
+              $ref: '#/components/schemas/ReminderSummary'
+        suggestions:
+          type: array
+          description: Suggested follow-up actions
+          items:
+            type: string
+          example:
+            - "Show my tasks"
+            - "Add another task"
+            - "Set a reminder"
+
+    TaskSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+
+    ReminderSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_title:
+          type: string
+        remind_at:
+          type: string
+          format: date-time
+
+    ChatHistoryResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              role:
+                type: string
+                enum: [user, assistant]
+              content:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+              intent:
+                type: string
+                nullable: true
+        total:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        suggestions:
+          type: array
+          items:
+            type: string
+          description: Helpful suggestions when an error occurs
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: array
+                items:
+                  type: object

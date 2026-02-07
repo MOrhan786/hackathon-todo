@@ -1,0 +1,148 @@
+'use client';
+
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { AnimatedWrapper } from '@/components/ui/animation';
+import { Task } from '@/types/task';
+
+interface TaskCardProps {
+  task: Task;
+  onEdit?: (task: Task) => void;
+  onDelete?: (id: string) => void;
+  onCompleteToggle?: (id: string, completed: boolean) => void;
+  className?: string;
+}
+
+const TaskCard: React.FC<TaskCardProps> = ({
+  task,
+  onEdit,
+  onDelete,
+  onCompleteToggle,
+  className
+}) => {
+  // Determine badge variant based on task priority
+  const getPriorityBadgeVariant = () => {
+    switch (task.priority) {
+      case 'high':
+        return 'high';
+      case 'medium':
+        return 'medium';
+      case 'low':
+        return 'low';
+      default:
+        return 'secondary';
+    }
+  };
+
+  // Format due date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  // Check if task is overdue
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.completed;
+
+  return (
+    <AnimatedWrapper animation="fadeIn" className={className}>
+      <Card className="p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover border-input hover:border-primary/30">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className={`text-xl font-semibold font-heading ${task.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+            {task.title}
+          </h3>
+          <div className="flex gap-2 ml-2">
+            {task.priority && (
+              <Badge variant={getPriorityBadgeVariant()}>
+                {task.priority.toUpperCase()}
+              </Badge>
+            )}
+            {task.dueDate && (
+              <Badge variant={isOverdue ? 'overdue' : 'default'}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {formatDate(task.dueDate)}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {task.description && (
+          <p className="text-foreground/80 mb-4 line-clamp-2" style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden'
+          }}>
+            {task.description}
+          </p>
+        )}
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Custom Checkbox */}
+            <div
+              className={`w-5 h-5 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${
+                task.completed
+                  ? 'bg-success border-success'
+                  : 'border-input hover:border-primary'
+              }`}
+              onClick={() => onCompleteToggle?.(task.id, !task.completed)}
+            >
+              {task.completed && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-primary-foreground" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
+
+            {task.tags && task.tags.length > 0 && (
+              <div className="flex gap-1">
+                {task.tags.map((tag, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    #{tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2 mr-0">
+            {onEdit && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onEdit(task)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 border-destructive/50 hover:bg-destructive hover:text-destructive-foreground"
+                onClick={() => onDelete(task.id)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    </AnimatedWrapper>
+  );
+};
+
+export default TaskCard;
