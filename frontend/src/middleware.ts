@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
   const publicPaths = ['/login', '/signup'];
 
   // Protected paths that should be handled client-side
-  const clientProtectedPaths = ['/dashboard', '/tasks', '/']; // Add other protected pages here - '/' is the home page
+  const clientProtectedPaths = ['/dashboard', '/tasks', '/chat', '/']; // Add other protected pages here - '/' is the home page
 
   // Check if current path is a public path
   const isPublicPath = publicPaths.some(path =>

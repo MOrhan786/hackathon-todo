@@ -166,8 +166,23 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const toggleTaskCompletion = async (id: string) => {
     try {
-      setLoading(true);
+      // Optimistic update - update UI immediately
+      setTasks(prev => prev.map(task => {
+        if (task.id === id) {
+          const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+          return {
+            ...task,
+            status: newStatus,
+            completed: newStatus === 'completed'
+          };
+        }
+        return task;
+      }));
+
+      // Then sync with backend (without blocking UI)
       const updatedTask = await taskService.toggleTaskCompletion(id);
+
+      // Update with actual backend response to ensure consistency
       if (updatedTask) {
         setTasks(prev => prev.map(task =>
           task.id === id ? updatedTask : task
@@ -176,8 +191,8 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       setError('Failed to toggle task completion');
       console.error(err);
-    } finally {
-      setLoading(false);
+      // Revert optimistic update on error
+      await fetchTasks();
     }
   };
 

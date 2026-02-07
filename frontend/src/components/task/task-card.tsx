@@ -47,13 +47,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   // Check if task is overdue
-  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.completed;
+  const isCompleted = task.status === 'completed' || (task as any).completed === true;
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !isCompleted;
 
   return (
     <AnimatedWrapper animation="fadeIn" className={className}>
       <Card className="p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover border-input hover:border-primary/30">
         <div className="flex justify-between items-start mb-3">
-          <h3 className={`text-xl font-semibold font-heading ${task.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+          <h3 className={`text-xl font-semibold font-heading ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
             {task.title}
           </h3>
           <div className="flex gap-2 ml-2">
@@ -89,13 +90,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
             {/* Custom Checkbox */}
             <div
               className={`w-5 h-5 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${
-                task.completed
+                isCompleted
                   ? 'bg-success border-success'
                   : 'border-input hover:border-primary'
               }`}
-              onClick={() => onCompleteToggle?.(task.id, !task.completed)}
+              onClick={() => onCompleteToggle?.(task.id, !isCompleted)}
             >
-              {task.completed && (
+              {isCompleted && (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-primary-foreground" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>

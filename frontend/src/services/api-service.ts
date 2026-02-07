@@ -108,26 +108,35 @@ export const taskApiService = {
   // Toggle task completion status
   async toggleTaskCompletion(id: string): Promise<Task | null> {
     try {
-      // First, get the current task to check its status
-      const task = await this.getTaskById(id);
-      if (!task) {
-        return null;
-      }
-
-      // Toggle the completion status
-      const updatedStatus = task.status === 'completed' ? 'pending' : 'completed';
-      const completed_at = updatedStatus === 'completed' ? new Date().toISOString() : null;
-
-      // Update the task with the new status
-      const response = await api.put<Task>(`/api/tasks/${id}`, {
-        status: updatedStatus,
-        completed_at,
-      });
-
+      // Use the backend's toggle endpoint instead of get+put
+      // This makes it a single API call and faster
+      const response = await api.patch<Task>(`/api/tasks/${id}/toggle`);
       return response.data;
     } catch (error: any) {
-      if (error.response?.status === 404) {
-        return null;
+      // If toggle endpoint doesn't exist, fallback to old method
+      if (error.response?.status === 404 || error.response?.status === 405) {
+        try {
+          // Get current task
+          const task = await this.getTaskById(id);
+          if (!task) {
+            return null;
+          }
+
+          // Toggle the completion status
+          const updatedStatus = task.status === 'completed' ? 'pending' : 'completed';
+          const completed_at = updatedStatus === 'completed' ? new Date().toISOString() : null;
+
+          // Update the task
+          const response = await api.put<Task>(`/api/tasks/${id}`, {
+            status: updatedStatus,
+            completed_at,
+          });
+
+          return response.data;
+        } catch (fallbackError) {
+          console.error('Error in fallback toggle:', fallbackError);
+          throw fallbackError;
+        }
       }
       console.error('Error toggling task completion:', error);
       throw error;

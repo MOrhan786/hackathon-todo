@@ -26,9 +26,10 @@ const TaskList: React.FC<TaskListProps> = ({
 
   // Filter tasks based on active filter and search term
   const filteredTasks = tasks.filter(task => {
+    const isCompleted = task.status === 'completed' || (task as any).completed === true;
     const matchesFilter = activeFilter === 'all' ||
-                         (activeFilter === 'active' && !task.completed) ||
-                         (activeFilter === 'completed' && task.completed);
+                         (activeFilter === 'active' && !isCompleted) ||
+                         (activeFilter === 'completed' && isCompleted);
 
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
