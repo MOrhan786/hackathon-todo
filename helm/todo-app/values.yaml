@@ -1,0 +1,77 @@
+# Default values for todo-app Helm chart
+# Phase IV: Local Kubernetes Deployment
+
+namespace: todo-app
+
+# Backend Configuration (FastAPI)
+backend:
+  replicaCount: 1
+  image:
+    repository: todo-backend
+    tag: latest
+    pullPolicy: Never
+  service:
+    type: NodePort
+    port: 8000
+    nodePort: 30800
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  config:
+    ALGORITHM: "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+    REFRESH_TOKEN_EXPIRE_DAYS: "7"
+    SERVER_HOST: "0.0.0.0"
+    SERVER_PORT: "8000"
+    DEBUG: "False"
+  probes:
+    readiness:
+      path: /health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    liveness:
+      path: /health
+      initialDelaySeconds: 30
+      periodSeconds: 30
+
+# Frontend Configuration (Next.js)
+frontend:
+  replicaCount: 1
+  image:
+    repository: todo-frontend
+    tag: latest
+    pullPolicy: Never
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30300
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  env:
+    NEXT_PUBLIC_MOCK_API: "false"
+  probes:
+    readiness:
+      path: /
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    liveness:
+      path: /
+      initialDelaySeconds: 30
+      periodSeconds: 30
+
+# Secrets - Set via --set flags or create a local values-secrets.yaml (not committed)
+# Example: helm install todo-app ./helm/todo-app/ -f values-secrets.yaml
+secrets:
+  DATABASE_URL: "REPLACE_WITH_YOUR_DATABASE_URL"
+  OPENAI_API_KEY: "REPLACE_WITH_YOUR_OPENAI_API_KEY"
+  JWT_SECRET_KEY: "REPLACE_WITH_YOUR_JWT_SECRET_KEY"
+  JWT_REFRESH_SECRET_KEY: "REPLACE_WITH_YOUR_JWT_REFRESH_SECRET_KEY"

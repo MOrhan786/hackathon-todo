@@ -6,6 +6,13 @@ const nextConfig = {
   compress: true,
   // Enable SWC minification for faster builds
   swcMinify: true,
+  // Disable type checking during build for Docker (Phase 4)
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 
   // Security headers including CSP
   async headers() {

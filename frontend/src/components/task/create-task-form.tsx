@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { CreateTaskData } from '@/types/task';
+import { TaskPriority } from '@/types/task.types';
 
 interface CreateTaskFormProps {
   onSubmit: (taskData: CreateTaskData) => void;
@@ -13,51 +13,28 @@ interface CreateTaskFormProps {
 }
 
 const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState<Omit<CreateTaskData, 'userId'>>({
+  const [formData, setFormData] = useState<CreateTaskData>({
     title: '',
     description: '',
-    dueDate: '',
-    priority: 'medium',
-    category: '',
-    tags: [],
+    due_date: null,
+    priority: TaskPriority.MEDIUM,
   });
-  const [tagInput, setTagInput] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value || undefined }));
   };
 
-  const handlePriorityChange = (priority: 'low' | 'medium' | 'high') => {
+  const handlePriorityChange = (priority: TaskPriority) => {
     setFormData(prev => ({ ...prev, priority }));
   };
 
-  const handleTagInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTagInput(e.target.value);
-  };
-
-  const handleAddTag = () => {
-    if (tagInput.trim() && !formData.tags?.includes(tagInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...(prev.tags || []), tagInput.trim()]
-      }));
-      setTagInput('');
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
+  const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags?.filter(tag => tag !== tagToRemove) || []
+      due_date: value ? new Date(value).toISOString() : null
     }));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
-      handleAddTag();
-    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -65,10 +42,11 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onSubmit, onCancel }) =
     onSubmit(formData);
   };
 
-  const priorityColors = {
-    low: 'bg-success',
-    medium: 'bg-accent',
-    high: 'bg-destructive'
+  const priorityConfig = {
+    [TaskPriority.LOW]: { label: 'Low', color: 'bg-green-500' },
+    [TaskPriority.MEDIUM]: { label: 'Medium', color: 'bg-yellow-500' },
+    [TaskPriority.HIGH]: { label: 'High', color: 'bg-orange-500' },
+    [TaskPriority.URGENT]: { label: 'Urgent', color: 'bg-red-500' },
   };
 
   return (
@@ -106,7 +84,7 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onSubmit, onCancel }) =
             <Textarea
               id="description"
               name="description"
-              value={formData.description}
+              value={formData.description || ''}
               onChange={handleChange}
               placeholder="Enter task description"
               className="bg-card border-input text-foreground min-h-[120px]"
@@ -117,34 +95,34 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onSubmit, onCancel }) =
             <label className="block text-sm font-medium text-foreground mb-2">
               Priority
             </label>
-            <div className="flex gap-3">
-              {(['low', 'medium', 'high'] as const).map((level) => (
+            <div className="grid grid-cols-2 gap-3">
+              {Object.entries(priorityConfig).map(([value, config]) => (
                 <div
-                  key={level}
-                  className={`flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                    formData.priority === level
-                      ? `${priorityColors[level]} border-current text-primary-foreground`
+                  key={value}
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    formData.priority === value
+                      ? `${config.color} border-current text-white`
                       : 'border-input hover:border-primary'
                   }`}
-                  onClick={() => handlePriorityChange(level)}
+                  onClick={() => handlePriorityChange(value as TaskPriority)}
                 >
-                  <div className="capitalize font-medium">{level}</div>
+                  <div className="font-medium">{config.label}</div>
                 </div>
               ))}
             </div>
           </div>
 
           <div>
-            <label htmlFor="dueDate" className="block text-sm font-medium text-foreground mb-2">
+            <label htmlFor="due_date" className="block text-sm font-medium text-foreground mb-2">
               Due Date
             </label>
             <div className="relative">
               <Input
-                type="date"
-                id="dueDate"
-                name="dueDate"
-                value={formData.dueDate}
-                onChange={handleChange}
+                type="datetime-local"
+                id="due_date"
+                name="due_date"
+                value={formData.due_date ? new Date(formData.due_date).toISOString().slice(0, 16) : ''}
+                onChange={handleDueDateChange}
                 className="bg-card border-input text-foreground pl-10"
               />
               <svg
@@ -157,43 +135,6 @@ const CreateTaskForm: React.FC<CreateTaskFormProps> = ({ onSubmit, onCancel }) =
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Tags
-            </label>
-            <div className="flex gap-2">
-              <Input
-                value={tagInput}
-                onChange={handleTagInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Add a tag and press Enter"
-                className="bg-card border-input text-foreground flex-1"
-              />
-              <Button type="button" variant="outline" onClick={handleAddTag}>
-                Add
-              </Button>
-            </div>
-
-            {formData.tags && formData.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {formData.tags.map((tag, index) => (
-                  <div key={index} className="flex items-center gap-1 bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-sm">
-                    #{tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="ml-1 text-muted-foreground hover:text-foreground"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="flex gap-3 pt-4">
