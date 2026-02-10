@@ -28,7 +28,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https:",
-              "connect-src 'self' http://localhost:8000 https:", // Allow API calls
+              "connect-src 'self' https://mrsasif-hackathon-2.hf.space https:", // Allow API calls
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
