@@ -1,5 +1,12 @@
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
 // Utility functions for design tokens
 import { colors, spacing, typography, radii, shadows, breakpoints } from '../constants/design-tokens';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
 
 // Type definitions for design tokens
 export type ColorPalette = keyof typeof colors;
