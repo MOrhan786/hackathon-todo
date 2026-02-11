@@ -3,9 +3,8 @@ uvicorn
 sqlmodel
 python-multipart
 python-jose[cryptography]
-passlib[bcrypt]
-bcrypt<5.0.0
+bcrypt
 psycopg2-binary
 python-dotenv
 pydantic-settings
-openai>=1.0.0
+openai
