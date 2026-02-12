@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from routes import tasks
 from routes import chatbot
+from routes import reminders
 from routes.auth import router as auth_router
 from core.config import settings
 from core.db import create_db_and_tables
@@ -56,6 +57,7 @@ def create_app() -> FastAPI:
 
     # Include routers
     app.include_router(tasks.router, prefix="/api", tags=["tasks"])
+    app.include_router(reminders.router, prefix="/api", tags=["reminders"])
     app.include_router(chatbot.router, tags=["chatbot"])
     app.include_router(auth_router, tags=["auth"])
 
