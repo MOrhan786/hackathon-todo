@@ -1,5 +1,6 @@
 from sqlmodel import SQLModel, Field, Column
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime, ForeignKey, func
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from typing import Optional
 from datetime import datetime
 from uuid import UUID, uuid4
@@ -30,7 +31,9 @@ class TaskReminder(TaskReminderBase, table=True):
         primary_key=True,
         nullable=False
     )
-    task_id: UUID = Field(foreign_key="tasks.id", index=True)
+    task_id: UUID = Field(
+        sa_column=Column(PG_UUID(as_uuid=True), ForeignKey("tasks.id", ondelete="CASCADE"), index=True)
+    )
     user_id: str = Field(index=True)
     is_sent: bool = Field(default=False)
     sent_at: Optional[datetime] = Field(default=None)
