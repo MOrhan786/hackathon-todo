@@ -1,0 +1,39 @@
+{{- if .Values.notification.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-consumer
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "todo-app.notification.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.notification.replicaCount }}
+  selector:
+    matchLabels:
+      app: notification-consumer
+  template:
+    metadata:
+      labels:
+        app: notification-consumer
+      annotations:
+        dapr.io/enabled: "false"
+    spec:
+      {{- if .Values.imagePullSecret.enabled }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecret.name }}
+      {{- end }}
+      containers:
+        - name: notification-consumer
+          image: "{{ .Values.notification.image.repository }}:{{ .Values.notification.image.tag }}"
+          imagePullPolicy: {{ .Values.notification.image.pullPolicy }}
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: {{ .Values.kafka.bootstrapServers | quote }}
+          resources:
+            requests:
+              memory: {{ .Values.notification.resources.requests.memory | quote }}
+              cpu: {{ .Values.notification.resources.requests.cpu | quote }}
+            limits:
+              memory: {{ .Values.notification.resources.limits.memory | quote }}
+              cpu: {{ .Values.notification.resources.limits.cpu | quote }}
+{{- end }}

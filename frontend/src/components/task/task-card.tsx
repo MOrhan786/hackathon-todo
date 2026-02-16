@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AnimatedWrapper } from '@/components/ui/animation';
@@ -22,21 +22,16 @@ const TaskCard: React.FC<TaskCardProps> = ({
   onCompleteToggle,
   className
 }) => {
-  // Determine badge variant based on task priority
   const getPriorityBadgeVariant = () => {
     switch (task.priority) {
-      case 'high':
-        return 'high';
-      case 'medium':
-        return 'medium';
-      case 'low':
-        return 'low';
-      default:
-        return 'secondary';
+      case 'urgent': return 'destructive';
+      case 'high': return 'high';
+      case 'medium': return 'medium';
+      case 'low': return 'low';
+      default: return 'secondary';
     }
   };
 
-  // Format due date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -46,9 +41,18 @@ const TaskCard: React.FC<TaskCardProps> = ({
     });
   };
 
-  // Check if task is overdue
-  const isCompleted = task.status === 'completed' || (task as any).completed === true;
-  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !isCompleted;
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  };
+
+  const isCompleted = task.status === 'completed';
+  const isOverdue = task.due_date && new Date(task.due_date) < new Date() && !isCompleted;
 
   return (
     <AnimatedWrapper animation="fadeIn" className={className}>
@@ -56,19 +60,32 @@ const TaskCard: React.FC<TaskCardProps> = ({
         <div className="flex justify-between items-start mb-3">
           <h3 className={`text-xl font-semibold font-heading ${isCompleted ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
             {task.title}
+            {task.is_recurring && (
+              <span className="ml-2 text-sm text-primary" title={`Repeats ${task.recurrence_pattern}`}>
+                &#x21bb;
+              </span>
+            )}
           </h3>
-          <div className="flex gap-2 ml-2">
+          <div className="flex gap-2 ml-2 flex-wrap justify-end">
             {task.priority && (
               <Badge variant={getPriorityBadgeVariant()}>
                 {task.priority.toUpperCase()}
               </Badge>
             )}
-            {task.dueDate && (
+            {task.due_date && (
               <Badge variant={isOverdue ? 'overdue' : 'default'}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                {formatDate(task.dueDate)}
+                {formatDate(task.due_date)}
+              </Badge>
+            )}
+            {task.reminder_at && !task.reminder_sent && (
+              <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {formatDateTime(task.reminder_at)}
               </Badge>
             )}
           </div>
@@ -83,6 +100,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
           }}>
             {task.description}
           </p>
+        )}
+
+        {task.is_recurring && task.recurrence_pattern && (
+          <div className="mb-3 text-xs text-muted-foreground">
+            Repeats {task.recurrence_interval > 1 ? `every ${task.recurrence_interval} ` : ''}{task.recurrence_pattern}
+            {task.recurrence_end_date && ` until ${formatDate(task.recurrence_end_date)}`}
+          </div>
         )}
 
         <div className="flex items-center justify-between">
@@ -104,7 +128,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
             </div>
 
             {task.tags && task.tags.length > 0 && (
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-wrap">
                 {task.tags.map((tag, index) => (
                   <Badge key={index} variant="secondary" className="text-xs">
                     #{tag}

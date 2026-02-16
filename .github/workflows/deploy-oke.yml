@@ -1,0 +1,149 @@
+name: CD - Deploy to OKE
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'helm/**'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy'
+        required: false
+        default: 'latest'
+
+env:
+  OCIR_REGISTRY: ${{ secrets.OCIR_REGISTRY }}
+  OCIR_NAMESPACE: ${{ secrets.OCIR_NAMESPACE }}
+  OKE_CLUSTER_ID: ${{ secrets.OKE_CLUSTER_ID }}
+  OCI_REGION: ${{ secrets.OCI_REGION }}
+  HELM_RELEASE: todo-app
+  K8S_NAMESPACE: todo-app
+
+jobs:
+  build-and-push:
+    name: Build & Push to OCIR
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to OCIR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.OCIR_REGISTRY }}
+          username: ${{ env.OCIR_NAMESPACE }}/${{ secrets.OCIR_USERNAME }}
+          password: ${{ secrets.OCIR_TOKEN }}
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.OCIR_REGISTRY }}/${{ env.OCIR_NAMESPACE }}/todo-app/backend:${{ steps.tag.outputs.tag }}
+            ${{ env.OCIR_REGISTRY }}/${{ env.OCIR_NAMESPACE }}/todo-app/backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.OCIR_REGISTRY }}/${{ env.OCIR_NAMESPACE }}/todo-app/frontend:${{ steps.tag.outputs.tag }}
+            ${{ env.OCIR_REGISTRY }}/${{ env.OCIR_NAMESPACE }}/todo-app/frontend:latest
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push notification-consumer
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./backend/consumers/Dockerfile
+          push: true
+          tags: |
+            ${{ env.OCIR_REGISTRY }}/${{ env.OCIR_NAMESPACE }}/todo-app/notification-consumer:${{ steps.tag.outputs.tag }}
+            ${{ env.OCIR_REGISTRY }}/${{ env.OCIR_NAMESPACE }}/todo-app/notification-consumer:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to OKE
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure OCI CLI
+        uses: oracle-actions/configure-kubectl-oke@v1.5.0
+        with:
+          cluster: ${{ env.OKE_CLUSTER_ID }}
+          region: ${{ env.OCI_REGION }}
+          tenancy: ${{ secrets.OCI_TENANCY }}
+          user: ${{ secrets.OCI_USER }}
+          fingerprint: ${{ secrets.OCI_FINGERPRINT }}
+          private_key: ${{ secrets.OCI_PRIVATE_KEY }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Create namespace
+        run: kubectl create namespace ${{ env.K8S_NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy with Helm
+        run: |
+          TAG="${{ needs.build-and-push.outputs.image_tag }}"
+
+          helm upgrade --install ${{ env.HELM_RELEASE }} ./helm/todo-app/ \
+            -f helm/todo-app/values-oke.yaml \
+            --namespace ${{ env.K8S_NAMESPACE }} \
+            --set backend.image.repository=${{ env.OCIR_REGISTRY }}/${{ env.OCIR_NAMESPACE }}/todo-app/backend \
+            --set backend.image.tag=$TAG \
+            --set frontend.image.repository=${{ env.OCIR_REGISTRY }}/${{ env.OCIR_NAMESPACE }}/todo-app/frontend \
+            --set frontend.image.tag=$TAG \
+            --set notification.image.repository=${{ env.OCIR_REGISTRY }}/${{ env.OCIR_NAMESPACE }}/todo-app/notification-consumer \
+            --set notification.image.tag=$TAG \
+            --set secrets.DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            --set secrets.OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            --set secrets.JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+            --set secrets.JWT_REFRESH_SECRET_KEY="${{ secrets.JWT_REFRESH_SECRET_KEY }}" \
+            --set kafka.bootstrapServers="${{ secrets.KAFKA_BOOTSTRAP_SERVERS }}" \
+            --set imagePullSecret.registry=${{ env.OCIR_REGISTRY }} \
+            --set imagePullSecret.username="${{ env.OCIR_NAMESPACE }}/${{ secrets.OCIR_USERNAME }}" \
+            --set imagePullSecret.password="${{ secrets.OCIR_TOKEN }}" \
+            --set imagePullSecret.email="${{ secrets.OCIR_EMAIL }}" \
+            --wait --timeout 300s
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n ${{ env.K8S_NAMESPACE }}
+          kubectl get svc -n ${{ env.K8S_NAMESPACE }}
+
+      - name: Get frontend external IP
+        run: |
+          echo "Waiting for LoadBalancer IP..."
+          kubectl get svc frontend -n ${{ env.K8S_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "IP pending..."

@@ -1,0 +1,74 @@
+# Oracle Cloud OKE production overrides
+# Usage: helm install todo-app ./helm/todo-app/ -f helm/todo-app/values-oke.yaml -f values-secrets.yaml
+
+namespace: todo-app
+
+# Backend - use OCIR images
+backend:
+  replicaCount: 2
+  image:
+    repository: <region>.ocir.io/<tenancy-namespace>/todo-app/backend
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+# Frontend - use OCIR images
+frontend:
+  replicaCount: 2
+  image:
+    repository: <region>.ocir.io/<tenancy-namespace>/todo-app/frontend
+    tag: latest
+    pullPolicy: Always
+  service:
+    type: LoadBalancer
+    port: 3000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+# Notification Consumer - use OCIR images
+notification:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: <region>.ocir.io/<tenancy-namespace>/todo-app/notification-consumer
+    tag: latest
+    pullPolicy: Always
+
+# Kafka - point to Redpanda Cloud or managed Kafka in production
+kafka:
+  bootstrapServers: "<your-redpanda-cloud-broker>:9092"
+  enabled: true
+
+# Disable local Redpanda in production (use managed service)
+redpanda:
+  enabled: false
+
+# Dapr
+dapr:
+  enabled: true
+  pubsubName: "kafka-pubsub"
+  statestore:
+    enabled: true
+
+# OCIR Image Pull Secret
+imagePullSecret:
+  enabled: true
+  name: ocir-secret
+  registry: "<region>.ocir.io"
+  username: "<tenancy-namespace>/<username>"
+  password: "<auth-token>"
+  email: "<email>"

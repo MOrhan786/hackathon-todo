@@ -29,19 +29,29 @@ class TaskBase(BaseModel):
     status: TaskStatus = Field(default=TaskStatus.PENDING)
     priority: TaskPriority = Field(default=TaskPriority.MEDIUM)
     due_date: Optional[datetime] = None
+    tags: List[str] = Field(default=[])
+    is_recurring: bool = Field(default=False)
+    recurrence_pattern: Optional[str] = Field(default=None, max_length=20)
+    recurrence_interval: int = Field(default=1)
+    recurrence_end_date: Optional[datetime] = None
+    reminder_at: Optional[datetime] = None
 
 
 class TaskCreate(BaseModel):
     """
     Schema for creating a new task.
-
-    Requires title, with optional description, status, priority, and due_date.
     """
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = Field(default="", max_length=1000)
     status: TaskStatus = Field(default=TaskStatus.PENDING)
     priority: TaskPriority = Field(default=TaskPriority.MEDIUM)
     due_date: Optional[datetime] = None
+    tags: List[str] = Field(default=[])
+    is_recurring: bool = Field(default=False)
+    recurrence_pattern: Optional[str] = Field(default=None, max_length=20)
+    recurrence_interval: int = Field(default=1)
+    recurrence_end_date: Optional[datetime] = None
+    reminder_at: Optional[datetime] = None
 
 
 class TaskUpdate(BaseModel):
@@ -55,6 +65,12 @@ class TaskUpdate(BaseModel):
     status: Optional[TaskStatus] = None
     priority: Optional[TaskPriority] = None
     due_date: Optional[datetime] = None
+    tags: Optional[List[str]] = None
+    is_recurring: Optional[bool] = None
+    recurrence_pattern: Optional[str] = None
+    recurrence_interval: Optional[int] = None
+    recurrence_end_date: Optional[datetime] = None
+    reminder_at: Optional[datetime] = None
 
 
 class TaskResponse(BaseModel):
@@ -68,6 +84,14 @@ class TaskResponse(BaseModel):
     status: TaskStatus
     priority: TaskPriority
     due_date: Optional[datetime]
+    tags: List[str] = []
+    is_recurring: bool = False
+    recurrence_pattern: Optional[str] = None
+    recurrence_interval: int = 1
+    recurrence_end_date: Optional[datetime] = None
+    reminder_at: Optional[datetime] = None
+    reminder_sent: bool = False
+    parent_task_id: Optional[UUID] = None
     completed_at: Optional[datetime]
     is_deleted: bool
     created_at: datetime
@@ -85,3 +109,11 @@ class TaskListResponse(BaseModel):
     total: int = 0
     page: int = 1
     page_size: int = 20
+
+
+class ReminderDueResponse(BaseModel):
+    """
+    Schema for tasks with due reminders.
+    """
+    tasks: List[TaskResponse]
+    count: int

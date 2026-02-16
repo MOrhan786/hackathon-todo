@@ -1,0 +1,52 @@
+{{- if .Values.redpanda.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redpanda
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "todo-app.redpanda.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redpanda
+  template:
+    metadata:
+      labels:
+        app: redpanda
+    spec:
+      containers:
+        - name: redpanda
+          image: "{{ .Values.redpanda.image.repository }}:{{ .Values.redpanda.image.tag }}"
+          command:
+            - rpk
+            - redpanda
+            - start
+            - --smp=1
+            - --memory=512M
+            - --overprovisioned
+            - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
+            - --advertise-kafka-addr=internal://redpanda.{{ .Values.namespace }}.svc.cluster.local:9092,external://localhost:19092
+          ports:
+            - name: kafka
+              containerPort: 9092
+            - name: kafka-external
+              containerPort: 19092
+            - name: admin
+              containerPort: 9644
+          resources:
+            requests:
+              memory: {{ .Values.redpanda.resources.requests.memory | quote }}
+              cpu: {{ .Values.redpanda.resources.requests.cpu | quote }}
+            limits:
+              memory: {{ .Values.redpanda.resources.limits.memory | quote }}
+              cpu: {{ .Values.redpanda.resources.limits.cpu | quote }}
+          volumeMounts:
+            - name: redpanda-data
+              mountPath: /var/lib/redpanda/data
+      volumes:
+        - name: redpanda-data
+          emptyDir:
+            sizeLimit: {{ .Values.redpanda.storage.size }}
+{{- end }}

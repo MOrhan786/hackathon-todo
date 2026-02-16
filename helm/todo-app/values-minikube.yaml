@@ -1,0 +1,55 @@
+# Minikube local development overrides
+#
+# IMPORTANT: Next.js bakes NEXT_PUBLIC_API_URL at build time.
+# Build frontend image with your Minikube IP:
+#
+#   eval $(minikube docker-env)
+#   MINIKUBE_IP=$(minikube ip)
+#   docker build -t todo-backend:latest -f backend/Dockerfile backend/
+#   docker build -t todo-frontend:latest -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_URL=http://${MINIKUBE_IP}:30800 frontend/
+#   docker build -t notification-consumer:latest -f backend/consumers/Dockerfile .
+#
+# Then deploy:
+#   helm install todo-app ./helm/todo-app/ -f helm/todo-app/values-minikube.yaml \
+#     --set secrets.DATABASE_URL="your-db-url" \
+#     --set secrets.JWT_SECRET_KEY="your-jwt-key" \
+#     --set secrets.JWT_REFRESH_SECRET_KEY="your-refresh-key" \
+#     --set secrets.OPENAI_API_KEY="your-openai-key"
+
+namespace: todo-app
+
+# Local images built with `eval $(minikube docker-env) && docker build`
+backend:
+  image:
+    repository: todo-backend
+    tag: latest
+    pullPolicy: Never
+
+frontend:
+  image:
+    repository: todo-frontend
+    tag: latest
+    pullPolicy: Never
+
+notification:
+  enabled: true
+  image:
+    repository: notification-consumer
+    tag: latest
+    pullPolicy: Never
+
+# Kafka via local Redpanda in-cluster
+kafka:
+  bootstrapServers: "redpanda.todo-app.svc.cluster.local:9092"
+  enabled: true
+
+# Run Redpanda inside Minikube
+redpanda:
+  enabled: true
+
+# Disable Dapr for simple Minikube setup (use direct Kafka)
+dapr:
+  enabled: false
+
+imagePullSecret:
+  enabled: false

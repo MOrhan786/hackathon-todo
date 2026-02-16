@@ -24,6 +24,15 @@ class Settings(BaseSettings):
     # OpenAI settings
     OPENAI_API_KEY: str
 
+    # Kafka settings
+    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
+    KAFKA_ENABLED: bool = False
+
+    # Dapr settings
+    DAPR_ENABLED: bool = False
+    DAPR_HTTP_PORT: int = 3500
+    DAPR_PUBSUB_NAME: str = "kafka-pubsub"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

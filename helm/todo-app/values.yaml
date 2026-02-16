@@ -1,5 +1,5 @@
 # Default values for todo-app Helm chart
-# Phase IV: Local Kubernetes Deployment
+# Phase V: Kafka + Dapr + Kubernetes Deployment
 
 namespace: todo-app
 
@@ -68,8 +68,60 @@ frontend:
       initialDelaySeconds: 30
       periodSeconds: 30
 
+# Notification Consumer Configuration
+notification:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: notification-consumer
+    tag: latest
+    pullPolicy: Never
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+# Kafka Configuration
+kafka:
+  bootstrapServers: "redpanda.todo-app.svc.cluster.local:9092"
+  enabled: true
+
+# Redpanda (local Kafka-compatible broker)
+redpanda:
+  enabled: true
+  image:
+    repository: docker.redpanda.com/redpandadata/redpanda
+    tag: v24.1.1
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  storage:
+    size: 5Gi
+
+# Dapr Configuration
+dapr:
+  enabled: true
+  pubsubName: "kafka-pubsub"
+  statestore:
+    enabled: true
+
+# Image Pull Secret (for OCIR or private registries)
+imagePullSecret:
+  enabled: false
+  name: ocir-secret
+  registry: ""
+  username: ""
+  password: ""
+  email: ""
+
 # Secrets - Set via --set flags or create a local values-secrets.yaml (not committed)
-# Example: helm install todo-app ./helm/todo-app/ -f values-secrets.yaml
 secrets:
   DATABASE_URL: "REPLACE_WITH_YOUR_DATABASE_URL"
   OPENAI_API_KEY: "REPLACE_WITH_YOUR_OPENAI_API_KEY"

@@ -1,0 +1,108 @@
+# Docker Compose for local development with Redpanda (Kafka-compatible)
+# Usage: docker-compose up -d
+#
+# Prerequisites: copy backend/.env with DATABASE_URL, JWT keys, OPENAI_API_KEY
+
+version: "3.8"
+
+services:
+  # Redpanda - Kafka-compatible event streaming (lighter than Kafka for local dev)
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.1.1
+    container_name: redpanda
+    command:
+      - redpanda
+      - start
+      - --smp 1
+      - --memory 512M
+      - --overprovisioned
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --set redpanda.kafka_batch_max_bytes=10485760
+      - --set redpanda.max_kafka_throttle_delay_ms=30000
+    ports:
+      - "19092:19092"   # Kafka external
+      - "18082:18082"   # Pandaproxy
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # Create Kafka topics after Redpanda is ready
+  redpanda-init:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.1.1
+    container_name: redpanda-init
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    entrypoint: /bin/bash
+    command: >
+      -c "
+      rpk topic create task-events --brokers redpanda:9092 --partitions 3 --replicas 1 -c max.message.bytes=10485760 &&
+      rpk topic create reminders --brokers redpanda:9092 --partitions 3 --replicas 1 -c max.message.bytes=10485760 &&
+      rpk topic create task-updates --brokers redpanda:9092 --partitions 3 --replicas 1 -c max.message.bytes=10485760 &&
+      echo 'Topics created successfully'
+      "
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: todo-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=redpanda:9092
+      - KAFKA_ENABLED=true
+      - DAPR_ENABLED=false
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+  # Next.js Frontend
+  # NOTE: NEXT_PUBLIC_API_URL is baked at build time via --build-arg.
+  # For browser access, it must point to where the USER's browser can reach the backend.
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    container_name: todo-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_MOCK_API=false
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Notification Consumer (standalone — only needs Kafka)
+  notification-consumer:
+    build:
+      context: .
+      dockerfile: backend/consumers/Dockerfile
+    container_name: notification-consumer
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=redpanda:9092
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  redpanda-data:

@@ -14,7 +14,13 @@ spec:
     metadata:
       labels:
         app: frontend
+      annotations:
+        dapr.io/enabled: "false"
     spec:
+      {{- if .Values.imagePullSecret.enabled }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecret.name }}
+      {{- end }}
       containers:
         - name: frontend
           image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
@@ -24,6 +30,10 @@ spec:
           env:
             - name: NEXT_PUBLIC_MOCK_API
               value: {{ .Values.frontend.env.NEXT_PUBLIC_MOCK_API | quote }}
+            {{- if .Values.frontend.env.NEXT_PUBLIC_API_URL }}
+            - name: NEXT_PUBLIC_API_URL
+              value: {{ .Values.frontend.env.NEXT_PUBLIC_API_URL | quote }}
+            {{- end }}
           readinessProbe:
             httpGet:
               path: {{ .Values.frontend.probes.readiness.path }}

@@ -3,9 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from routes import tasks
 from routes import chatbot
+from routes import reminders
 from routes.auth import router as auth_router
+from routes.events import router as events_router
 from core.config import settings
 from core.db import create_db_and_tables
+from core.kafka import close_kafka_producer
 from contextlib import asynccontextmanager
 import logging
 from jose import JWTError
@@ -24,13 +27,19 @@ async def lifespan(app: FastAPI):
     """
     Lifespan event handler for application startup and shutdown.
 
-    Creates database tables on startup.
+    Creates database tables on startup. Initializes Kafka producer if enabled.
     """
     logger.info("Initializing database tables...")
     create_db_and_tables()
     logger.info("Database tables initialized successfully.")
+
+    if settings.KAFKA_ENABLED:
+        logger.info("Kafka is enabled. Producer will connect lazily on first event.")
+
     yield
+
     logger.info("Shutting down...")
+    await close_kafka_producer()
 
 
 def create_app() -> FastAPI:
@@ -56,8 +65,10 @@ def create_app() -> FastAPI:
 
     # Include routers
     app.include_router(tasks.router, prefix="/api", tags=["tasks"])
+    app.include_router(reminders.router, prefix="/api", tags=["reminders"])
     app.include_router(chatbot.router, tags=["chatbot"])
     app.include_router(auth_router, tags=["auth"])
+    app.include_router(events_router, tags=["events"])
 
     # Global exception handlers for JWT and auth-related errors
     @app.exception_handler(JWTError)
@@ -76,8 +87,29 @@ def create_app() -> FastAPI:
     def health_check():
         """Health check endpoint"""
         return {"status": "healthy"}
-    
-   
+
+    @app.get("/dapr/subscribe")
+    def dapr_subscribe():
+        """Dapr subscription discovery endpoint (must be at root level)."""
+        if not settings.DAPR_ENABLED:
+            return []
+        return [
+            {
+                "pubsubname": settings.DAPR_PUBSUB_NAME,
+                "topic": "task-events",
+                "route": "/events/task-events",
+            },
+            {
+                "pubsubname": settings.DAPR_PUBSUB_NAME,
+                "topic": "reminders",
+                "route": "/events/reminders",
+            },
+            {
+                "pubsubname": settings.DAPR_PUBSUB_NAME,
+                "topic": "task-updates",
+                "route": "/events/task-updates",
+            },
+        ]
 
     return app
 
