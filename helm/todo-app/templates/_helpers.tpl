@@ -22,3 +22,19 @@ Frontend labels
 {{ include "todo-app.labels" . }}
 app: frontend
 {{- end }}
+
+{{/*
+Notification consumer labels
+*/}}
+{{- define "todo-app.notification.labels" -}}
+{{ include "todo-app.labels" . }}
+app: notification-consumer
+{{- end }}
+
+{{/*
+Redpanda labels
+*/}}
+{{- define "todo-app.redpanda.labels" -}}
+{{ include "todo-app.labels" . }}
+app: redpanda
+{{- end }}

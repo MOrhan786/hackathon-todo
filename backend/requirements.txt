@@ -7,4 +7,7 @@ bcrypt
 psycopg2-binary
 python-dotenv
 pydantic-settings
-openai
+openai>=1.0.0
+python-dateutil
+aiokafka
+httpx

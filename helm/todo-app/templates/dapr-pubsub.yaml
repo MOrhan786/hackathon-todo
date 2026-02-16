@@ -1,0 +1,21 @@
+{{- if .Values.dapr.enabled }}
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: {{ .Values.dapr.pubsubName }}
+  namespace: {{ .Values.namespace }}
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    - name: brokers
+      value: {{ .Values.kafka.bootstrapServers | quote }}
+    - name: consumerGroup
+      value: "todo-app-group"
+    - name: authType
+      value: "none"
+    - name: maxMessageBytes
+      value: "1048576"
+    - name: consumeRetryInterval
+      value: "200ms"
+{{- end }}

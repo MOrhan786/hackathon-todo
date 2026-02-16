@@ -1,7 +1,7 @@
 // Task API Service - Handles all task-related API calls
 
 import api from './api';
-import { Task, TaskCreate, TaskUpdate, TaskListResponse, TaskFilters } from '@/types/task.types';
+import { Task, TaskCreate, TaskUpdate, TaskListResponse, TaskFilters, ReminderDueResponse } from '@/types/task.types';
 
 export type { TaskFilters };
 
@@ -12,7 +12,7 @@ export const taskApiService = {
       const response = await api.get<TaskListResponse>('/api/tasks', {
         params: {
           page: 1,
-          page_size: 100, // Get all tasks without pagination for now
+          page_size: 100,
         },
       });
       return response.data.tasks;
@@ -22,7 +22,7 @@ export const taskApiService = {
     }
   },
 
-  // List tasks with filters and pagination
+  // List tasks with filters, search, sort, and pagination
   async listTasks(filters?: TaskFilters): Promise<{ tasks: Task[]; total: number }> {
     try {
       const params: Record<string, any> = {
@@ -30,15 +30,14 @@ export const taskApiService = {
         page_size: filters?.page_size || 20,
       };
 
-      if (filters?.status) {
-        params.status = filters.status;
-      }
-      if (filters?.priority) {
-        params.priority = filters.priority;
-      }
-      if (filters?.due_before) {
-        params.due_before = filters.due_before;
-      }
+      if (filters?.status) params.status = filters.status;
+      if (filters?.priority) params.priority = filters.priority;
+      if (filters?.due_before) params.due_before = filters.due_before;
+      if (filters?.due_after) params.due_after = filters.due_after;
+      if (filters?.tags) params.tags = filters.tags;
+      if (filters?.search) params.search = filters.search;
+      if (filters?.sort_by) params.sort_by = filters.sort_by;
+      if (filters?.sort_order) params.sort_order = filters.sort_order;
 
       const response = await api.get<TaskListResponse>('/api/tasks', { params });
 
@@ -108,28 +107,17 @@ export const taskApiService = {
   // Toggle task completion status
   async toggleTaskCompletion(id: string): Promise<Task | null> {
     try {
-      // Use the backend's toggle endpoint instead of get+put
-      // This makes it a single API call and faster
       const response = await api.patch<Task>(`/api/tasks/${id}/toggle`);
       return response.data;
     } catch (error: any) {
-      // If toggle endpoint doesn't exist, fallback to old method
       if (error.response?.status === 404 || error.response?.status === 405) {
         try {
-          // Get current task
           const task = await this.getTaskById(id);
-          if (!task) {
-            return null;
-          }
+          if (!task) return null;
 
-          // Toggle the completion status
           const updatedStatus = task.status === 'completed' ? 'pending' : 'completed';
-          const completed_at = updatedStatus === 'completed' ? new Date().toISOString() : null;
-
-          // Update the task
           const response = await api.put<Task>(`/api/tasks/${id}`, {
             status: updatedStatus,
-            completed_at,
           });
 
           return response.data;
@@ -139,6 +127,28 @@ export const taskApiService = {
         }
       }
       console.error('Error toggling task completion:', error);
+      throw error;
+    }
+  },
+
+  // Get due reminders
+  async getDueReminders(): Promise<ReminderDueResponse> {
+    try {
+      const response = await api.get<ReminderDueResponse>('/api/tasks/reminders/due');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching due reminders:', error);
+      throw error;
+    }
+  },
+
+  // Mark reminder as sent
+  async markReminderSent(taskId: string): Promise<Task | null> {
+    try {
+      const response = await api.post<Task>(`/api/tasks/${taskId}/reminder-sent`);
+      return response.data;
+    } catch (error) {
+      console.error('Error marking reminder sent:', error);
       throw error;
     }
   },

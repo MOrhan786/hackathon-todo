@@ -118,10 +118,11 @@ class ChatbotService:
 
             # Call OpenAI with function calling
             response = client.chat.completions.create(
-                model="gpt-4-turbo-preview",
+                model="gpt-3.5-turbo",
                 messages=messages,
                 tools=TASK_TOOLS,
-                tool_choice="auto"
+                tool_choice="auto",
+                timeout=30
             )
 
             assistant_message = response.choices[0].message
@@ -170,8 +171,9 @@ class ChatbotService:
 
                 # Get final response from OpenAI after tool execution
                 final_response = client.chat.completions.create(
-                    model="gpt-4-turbo-preview",
-                    messages=messages
+                    model="gpt-3.5-turbo",
+                    messages=messages,
+                    timeout=30
                 )
 
                 assistant_content = final_response.choices[0].message.content

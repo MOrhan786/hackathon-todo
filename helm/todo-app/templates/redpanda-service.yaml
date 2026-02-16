@@ -1,0 +1,23 @@
+{{- if .Values.redpanda.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: redpanda
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "todo-app.redpanda.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: kafka
+      port: 9092
+      targetPort: 9092
+    - name: kafka-external
+      port: 19092
+      targetPort: 19092
+    - name: admin
+      port: 9644
+      targetPort: 9644
+  selector:
+    app: redpanda
+{{- end }}

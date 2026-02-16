@@ -81,6 +81,26 @@ export const taskService = {
       console.error('Error in taskService.completeTask:', error);
       throw error;
     }
+  },
+
+  // Get due reminders
+  async getDueReminders() {
+    try {
+      return await taskApiService.getDueReminders();
+    } catch (error) {
+      console.error('Error in taskService.getDueReminders:', error);
+      throw error;
+    }
+  },
+
+  // Mark reminder as sent
+  async markReminderSent(taskId: string) {
+    try {
+      return await taskApiService.markReminderSent(taskId);
+    } catch (error) {
+      console.error('Error in taskService.markReminderSent:', error);
+      throw error;
+    }
   }
 };
 
@@ -165,34 +185,25 @@ export const TaskProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const toggleTaskCompletion = async (id: string) => {
-    try {
-      // Optimistic update - update UI immediately
-      setTasks(prev => prev.map(task => {
-        if (task.id === id) {
-          const newStatus = task.status === 'completed' ? 'pending' : 'completed';
-          return {
-            ...task,
-            status: newStatus,
-            completed: newStatus === 'completed'
-          };
-        }
-        return task;
-      }));
-
-      // Then sync with backend (without blocking UI)
-      const updatedTask = await taskService.toggleTaskCompletion(id);
-
-      // Update with actual backend response to ensure consistency
-      if (updatedTask) {
-        setTasks(prev => prev.map(task =>
-          task.id === id ? updatedTask : task
-        ));
+    // Optimistic update - update UI immediately
+    setTasks(prev => prev.map(task => {
+      if (task.id === id) {
+        const newStatus = task.status === 'completed' ? 'pending' : 'completed';
+        return {
+          ...task,
+          status: newStatus,
+          completed: newStatus === 'completed'
+        };
       }
+      return task;
+    }));
+
+    // Sync with backend in background
+    try {
+      await taskService.toggleTaskCompletion(id);
     } catch (err) {
-      setError('Failed to toggle task completion');
-      console.error(err);
-      // Revert optimistic update on error
-      await fetchTasks();
+      console.error('Toggle error (kept optimistic update):', err);
+      // Keep optimistic update even if backend fails
     }
   };
 
