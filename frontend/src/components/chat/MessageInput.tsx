@@ -2,8 +2,46 @@
 
 // Message Input Component - Text input for chat messages
 
-import React, { KeyboardEvent, ChangeEvent, useEffect, useState } from 'react';
+import React, { KeyboardEvent, ChangeEvent, useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+
+// Voice input hook using Web Speech API
+function useVoiceInput(onResult: (text: string) => void) {
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const startListening = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Voice input is not supported in this browser. Please use Chrome.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      onResult(transcript);
+      setIsListening(false);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsListening(false);
+  };
+
+  return { isListening, startListening, stopListening };
+}
 
 interface MessageInputProps {
   value: string;
@@ -58,6 +96,11 @@ export default function MessageInput({
     }
   };
 
+  // Voice input
+  const { isListening, startListening, stopListening } = useVoiceInput((text) => {
+    onChange(value ? value + ' ' + text : text);
+  });
+
   // Check if send button should be disabled
   const isSendDisabled = disabled || !value.trim() || value.length > maxLength;
 
@@ -96,6 +139,26 @@ export default function MessageInput({
             )}
           </div>
         </div>
+
+        {/* Voice input button */}
+        <Button
+          onClick={isListening ? stopListening : startListening}
+          disabled={disabled}
+          variant={isListening ? 'destructive' : 'outline'}
+          className="min-h-[44px] px-3"
+          aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
+          title={isListening ? 'Stop listening' : 'Voice input'}
+        >
+          {isListening ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+              <rect x="6" y="6" width="12" height="12" rx="2" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+            </svg>
+          )}
+        </Button>
 
         {/* Send button */}
         <Button
