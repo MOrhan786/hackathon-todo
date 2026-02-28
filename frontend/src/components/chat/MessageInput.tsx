@@ -6,7 +6,7 @@ import React, { KeyboardEvent, ChangeEvent, useEffect, useState, useRef } from '
 import { Button } from '@/components/ui/button';
 
 // Voice input hook using Web Speech API
-function useVoiceInput(onResult: (text: string) => void) {
+function useVoiceInput(onResultRef: React.RefObject<((text: string) => void) | null>) {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -23,7 +23,9 @@ function useVoiceInput(onResult: (text: string) => void) {
     recognition.continuous = false;
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      onResult(transcript);
+      if (onResultRef.current) {
+        onResultRef.current(transcript);
+      }
       setIsListening(false);
     };
     recognition.onerror = () => setIsListening(false);
@@ -96,10 +98,12 @@ export default function MessageInput({
     }
   };
 
-  // Voice input
-  const { isListening, startListening, stopListening } = useVoiceInput((text) => {
-    onChange(value ? value + ' ' + text : text);
-  });
+  // Voice input - use ref to always get latest onChange and value
+  const voiceCallbackRef = useRef<((text: string) => void) | null>(null);
+  voiceCallbackRef.current = (text: string) => {
+    onChange(text);
+  };
+  const { isListening, startListening, stopListening } = useVoiceInput(voiceCallbackRef);
 
   // Check if send button should be disabled
   const isSendDisabled = disabled || !value.trim() || value.length > maxLength;
