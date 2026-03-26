@@ -1,12 +1,23 @@
-# Environment files (secrets)
+# ===========================================
+# ENVIRONMENT FILES (SECRETS - NEVER COMMIT)
+# ===========================================
 .env
 .env.*
 .env.local
+.env.*.local
 *.env
 !.env.example
 !.env.local.example
+.env.secrets
+.env.production
+.env.staging
+values-secrets.yaml
+*-secrets.yaml
+secrets.yaml
 
+# ===========================================
 # Python
+# ===========================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -30,8 +41,12 @@ wheels/
 # Venvs for python
 venv/
 env/
+.venv/
+ENV/
 
+# ===========================================
 # Node.js
+# ===========================================
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -41,20 +56,31 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
+# ===========================================
 # Next.js
+# ===========================================
 .next/
 out/
 .swc/
 
-# Frontend specific overrides
-!frontend/src/lib/
+# ===========================================
+# TypeScript
+# ===========================================
+*.tsbuildinfo
 
+# ===========================================
 # Testing
+# ===========================================
 coverage/
 .nyc_output/
 *.test.js.snap
+.pytest_cache/
+.coverage
+htmlcov/
 
+# ===========================================
 # IDEs
+# ===========================================
 .vscode/
 .idea/
 *.swp
@@ -62,20 +88,38 @@ coverage/
 *~
 .DS_Store
 
+# ===========================================
 # Logs
+# ===========================================
 logs/
 *.log
 
-# Temporary files
+# ===========================================
+# Temporary Files
+# ===========================================
 *.tmp
 *.temp
 .cache/
+tmp/
+temp/
 
+# ===========================================
 # Database
+# ===========================================
 *.db
 *.sqlite
 *.sqlite3
+*.sqlitedb
 
+# ===========================================
 # OS
+# ===========================================
 Thumbs.db
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# ===========================================
+# Docker
+# ===========================================
+.docker-compose*.env

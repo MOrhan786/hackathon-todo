@@ -1,7 +1,10 @@
 # Docker Compose for local development with Redpanda (Kafka-compatible)
 # Usage: docker-compose up -d
 #
-# Prerequisites: copy backend/.env with DATABASE_URL, JWT keys, OPENAI_API_KEY
+# Prerequisites:
+#   1. Copy backend/.env.example to backend/.env
+#   2. Fill in backend/.env with your actual secrets (DATABASE_URL, JWT keys, OPENAI_API_KEY)
+#   3. NEVER commit backend/.env to version control!
 
 version: "3.8"
 

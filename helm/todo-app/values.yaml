@@ -122,10 +122,33 @@ imagePullSecret:
   password: ""
   email: ""
 
-# Secrets - Set via --set flags or create a local values-secrets.yaml (not committed)
+# Secrets - IMPORTANT: Do NOT commit actual secret values to version control!
+# Use one of these methods to set secrets:
+#   1. Create a separate values-secrets.yaml file (add to .gitignore):
+#      secrets:
+#        DATABASE_URL: "postgresql://..."
+#        OPENAI_API_KEY: "sk-..."
+#        JWT_SECRET_KEY: "generate-with-openssl-rand-hex-32"
+#        JWT_REFRESH_SECRET_KEY: "generate-with-openssl-rand-hex-32"
+#      Then run: helm install -f values.yaml -f values-secrets.yaml ...
+#
+#   2. Use --set flags (be careful of shell history):
+#      helm install \
+#        --set secrets.DATABASE_URL="postgresql://..." \
+#        --set secrets.OPENAI_API_KEY="sk-..." \
+#        --set secrets.JWT_SECRET_KEY="..." \
+#        --set secrets.JWT_REFRESH_SECRET_KEY="..." ...
+#
+#   3. Use Kubernetes Secrets and reference them:
+#      kubectl create secret generic backend-secret \
+#        --from-literal=DATABASE_URL="postgresql://..." \
+#        --from-literal=OPENAI_API_KEY="sk-..." \
+#        --from-literal=JWT_SECRET_KEY="..." \
+#        --from-literal=JWT_REFRESH_SECRET_KEY="..."
 secrets:
-  DATABASE_URL: "your-database-url-here"
-  OPENAI_API_KEY: "your-openai-api-key-here"
-  JWT_SECRET_KEY: "your-jwt-secret-key-here"
-  JWT_REFRESH_SECRET_KEY: "your-jwt-refresh-secret-key-here"
+  # These are placeholder values - MUST be overridden in production
+  DATABASE_URL: ""
+  OPENAI_API_KEY: ""
+  JWT_SECRET_KEY: ""
+  JWT_REFRESH_SECRET_KEY: ""
 

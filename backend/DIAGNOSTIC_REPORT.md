@@ -263,7 +263,7 @@ WHERE due_date IS NOT NULL AND is_deleted = false;
 ## Database Connection Info
 
 **Environment:** Neon Serverless PostgreSQL
-**Connection:** `postgresql://neondb_owner:***@ep-broad-frog-abiyvpje-pooler.eu-west-2.aws.neon.tech/neondb`
+**Connection:** Configured via `DATABASE_URL` environment variable (see `backend/.env`)
 **Schema:** `public`
 
 ---

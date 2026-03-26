@@ -3,6 +3,26 @@ Test OpenAI integration to debug chatbot issues.
 """
 
 import sys
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Check if API key is set before importing OpenAI
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    print("=" * 60)
+    print("ERROR: OPENAI_API_KEY environment variable is not set!")
+    print("=" * 60)
+    print("\nPlease follow these steps:")
+    print("1. Copy backend/.env.example to backend/.env")
+    print("2. Get your API key from: https://platform.openai.com/api-keys")
+    print("3. Add it to backend/.env:")
+    print("   OPENAI_API_KEY=sk-your-actual-api-key-here")
+    print("=" * 60)
+    sys.exit(1)
+
 from openai import OpenAI
 from core.config import settings
 from tools.task_tools import TASK_TOOLS
@@ -13,16 +33,17 @@ print("=" * 60)
 
 # Test 1: Check API key
 print("\n1. Checking API key...")
-if settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.startswith('sk-'):
-    print(f"✓ API key configured: {settings.OPENAI_API_KEY[:15]}...")
+if api_key and api_key.startswith('sk-'):
+    print(f"✓ API key configured: {api_key[:15]}...")
 else:
     print("✗ API key not configured properly")
+    print(f"  Current value starts with: {api_key[:10] if api_key else 'EMPTY'}...")
     sys.exit(1)
 
 # Test 2: Initialize client
 print("\n2. Initializing OpenAI client...")
 try:
-    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    client = OpenAI(api_key=api_key)
     print("✓ Client initialized")
 except Exception as e:
     print(f"✗ Failed to initialize client: {e}")

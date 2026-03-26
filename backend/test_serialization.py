@@ -6,11 +6,17 @@ from models.task import Task
 from schemas.task import TaskResponse
 import os
 from dotenv import load_dotenv
+import sys
 
 load_dotenv()
 
 # Get connection string from .env
 db_url = os.getenv("DATABASE_URL")
+
+if not db_url:
+    print("ERROR: DATABASE_URL environment variable is not set!")
+    print("Please copy backend/.env.example to backend/.env and configure it.")
+    sys.exit(1)
 
 # Create engine
 engine = create_engine(db_url, echo=False)
